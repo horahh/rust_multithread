@@ -9,6 +9,7 @@ fn main() {
 	std_threads();
 	rayon_threads();
 	rayon_spawn();
+    rayon_spawn2();
 }
 
 
@@ -22,7 +23,7 @@ fn std_threads() {
 		let vcopy_to_move=v.clone();
 		let handle = thread::spawn(move || {
 				for x in 0..100 {
-					thread::sleep(Duration::from_millis(5));
+					thread::sleep(Duration::from_millis(1));
 					let mut v_thread = vcopy_to_move.lock().unwrap();
 					v_thread.push(x+100*i);
 				}
@@ -74,9 +75,29 @@ fn rayon_spawn() {
 			let i_move=i;
 			let v_rayon=v.clone();
 			s.spawn( move |_s| {
-					let iter = (0..100).enumerate().map(|(_,num)| { thread::sleep(Duration::from_millis(5)) ; num+i_move*100}); 
+					let iter = (0..100).enumerate().map(|(_,num)| { thread::sleep(Duration::from_millis(1)) ; num+i_move*100}); 
 					let mut v_thread = v_rayon.lock().unwrap();
 					v_thread[i_move]=Vec::from_iter(iter);
+					});
+		}
+	});
+    println!("v: {v:?}");
+}
+
+fn rayon_spawn2() {
+	let mut v : Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(vec![]));
+
+	rayon::scope(|s: &Scope| {
+		for i in 0..10 {
+			let i_move=i;
+			let v_rayon=v.clone();
+			s.spawn( move |_s| {
+					let iter = (0..100).enumerate().map(|(_,num)| { num+i_move*100}); 
+                    for value in Vec::from_iter(iter) {
+                        thread::sleep(Duration::from_millis(1));
+                        let mut v_thread = v_rayon.lock().unwrap();
+                        v_thread.push(value);
+                    }
 					});
 		}
 	});
