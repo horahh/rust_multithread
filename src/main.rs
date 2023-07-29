@@ -10,10 +10,9 @@ fn main() {
 	rayon_threads();
 	rayon_spawn();
     rayon_spawn2();
+    rayon_spawn3();
 }
 
-
-// STD THREADS
 fn std_threads() {
 
     let v = Arc::new(Mutex::new(vec![10, 20, 30]));
@@ -101,5 +100,28 @@ fn rayon_spawn2() {
 					});
 		}
 	});
+    println!("v: {v:?}");
+}
+
+fn rayon_spawn3() {
+    let mut v : Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(vec![0;1000]));
+    let mut index : Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+    rayon::scope( |s: &Scope| {
+        for i in 0..10 {
+            let i_move = i;
+            let v_rayon = v.clone();
+            let _index = index.clone();
+            s.spawn ( move |_s| {
+                for value in 0..100 {
+                        thread::sleep(Duration::from_millis(10));
+                        let mut v_thread = v_rayon.lock().unwrap();
+                        let mut thread_index = _index.lock().unwrap();
+                        v_thread[*thread_index] = value+i_move*100;
+                        *thread_index+=1;
+                }
+                
+            });
+        }
+    });
     println!("v: {v:?}");
 }
